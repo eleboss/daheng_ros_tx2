@@ -24,7 +24,16 @@ include_directories(
 )
 
 add_executable(video_stream src/video_stream.cpp)
-target_link_libraries(video_stream ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(video_stream ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+pthread
+gxiapi
+)
+
+add_executable(daheng src/daheng.cpp)
+target_link_libraries(daheng ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+pthread
+gxiapi
+)
 
 install(TARGETS video_stream
     RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
