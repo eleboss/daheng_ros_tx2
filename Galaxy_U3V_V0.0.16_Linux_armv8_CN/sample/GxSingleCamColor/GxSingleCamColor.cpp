@@ -287,6 +287,18 @@ int main()
     emStatus = GXSetEnum(g_hDevice, GX_ENUM_BALANCE_WHITE_AUTO, GX_BALANCE_WHITE_AUTO_CONTINUOUS);
     GX_VERIFY_EXIT(emStatus);
 
+    //Set Gain Mode : Continuous
+    emStatus = GXSetEnum(g_hDevice, GX_ENUM_GAIN_AUTO, GX_GAIN_AUTO_CONTINUOUS);
+    GX_VERIFY_EXIT(emStatus);
+
+    // enable frame rate setting 
+    emStatus = GXSetEnum(g_hDevice, GX_ENUM_ACQUISITION_FRAME_RATE_MODE, GX_ACQUISITION_FRAME_RATE_MODE_ON);
+    GX_VERIFY_EXIT(emStatus);
+
+    // setting the frame rate
+    emStatus = GXSetFloat(g_hDevice, GX_FLOAT_ACQUISITION_FRAME_RATE, 1.0);
+    GX_VERIFY_EXIT(emStatus);
+
     //Allocate the memory for pixel format transform 
     PreForAcquisition();
 

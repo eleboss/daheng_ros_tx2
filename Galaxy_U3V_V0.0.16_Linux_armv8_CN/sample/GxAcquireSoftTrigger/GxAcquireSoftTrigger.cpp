@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <opencv2/opencv.hpp>
+using namespace cv;
 
 #define ACQ_BUFFER_NUM          5               ///< Acquisition Buffer Qty.
 #define ACQ_TRANSFER_SIZE       (64 * 1024)     ///< Size of data transfer block
@@ -280,7 +282,7 @@ int main()
     emStatus = GXStreamOn(g_hDevice);
     if(emStatus != GX_STATUS_SUCCESS)
     {
-        //Release the memory allocated
+        //Release the memory allocated the memory allocated
         UnPreForAcquisition();
         GX_VERIFY_EXIT(emStatus);
     }
