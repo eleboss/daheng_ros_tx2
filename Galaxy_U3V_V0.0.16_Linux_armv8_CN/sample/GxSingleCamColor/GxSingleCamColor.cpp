@@ -14,6 +14,9 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <time.h>
+#include <opencv2/opencv.hpp>
+
+using namespace cv;
 
 #define ACQ_BUFFER_NUM          5               ///< Acquisition Buffer Qty.
 #define ACQ_TRANSFER_SIZE       (64 * 1024)     ///< Size of data transfer block
@@ -72,6 +75,8 @@ void *ProcGetImage(void*);
 
 //Get description of error
 void GetErrorString(GX_STATUS);
+
+
 
 int main()
 {
@@ -299,6 +304,22 @@ int main()
     emStatus = GXSetFloat(g_hDevice, GX_FLOAT_ACQUISITION_FRAME_RATE, 1.0);
     GX_VERIFY_EXIT(emStatus);
 
+    // setting auto exposure: off
+    //emStatus = GXSetFloat(g_hDevice, GX_ENUM_EXPOSURE_AUTO, GX_EXPOSURE_AUTO_OFF);
+    //GX_VERIFY_EXIT(emStatus);
+
+    //GX_FLOAT_RANGE shutterRange;
+    //emStatus = GXGetFloatRange(g_hDevice, GX_FLOAT_EXPOSURE_TIME, &shutterRange);
+    //GX_VERIFY_EXIT(emStatus);       
+    
+    //printf("%f,%f",shutterRange.dMin,shutterRange.dMax);
+    
+    // setting exposure time (unit:us)
+    emStatus = GXSetFloat(g_hDevice, GX_FLOAT_EXPOSURE_TIME, 20000.0);
+    GX_VERIFY_EXIT(emStatus);    
+
+   
+    
     //Allocate the memory for pixel format transform 
     PreForAcquisition();
 
@@ -500,6 +521,7 @@ void PreForAcquisition()
 {
     g_pRGBImageBuf = new unsigned char[g_nPayloadSize * 3]; 
     g_pRaw8Image = new unsigned char[g_nPayloadSize];
+    printf("%d",g_nPayloadSize);
 
     return;
 }
@@ -587,7 +609,12 @@ void *ProcGetImage(void* pParam)
 
             if (g_bSavePPMImage)
             {   
+
                 int nRet = PixelFormatConvert(pFrameBuffer);
+                Mat image(pFrameBuffer->nHeight, pFrameBuffer->nWidth, CV_8UC3, g_pRGBImageBuf);
+                //imwrite("./test.jpg",image);                
+                imshow("show",image);  
+                waitKey(10);
                 if (nRet == PIXFMT_CVT_SUCCESS)
                 {
                     SavePPMFile(pFrameBuffer->nWidth, pFrameBuffer->nHeight);
