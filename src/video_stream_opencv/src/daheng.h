@@ -37,6 +37,7 @@ mutex q_mutex;
 queue<Mat> framesQueue;
 string video_stream_provider_type;
 double set_camera_fps;
+double set_exposure_time;
 int max_queue_size;
 
 //Show error message

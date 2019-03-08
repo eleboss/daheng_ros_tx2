@@ -6,32 +6,6 @@
 
 
 
-// void do_capture(ros::NodeHandle &nh) {
-//     cv::Mat frame;
-//     ros::Rate camera_fps_rate(set_camera_fps);
-
-//     // Read frames as fast as possible
-//     while (nh.ok()) {
-//         cap >> frame;
-//         if (video_stream_provider_type == "videofile")
-//         {
-//             camera_fps_rate.sleep();
-//         }
-
-//         if(!frame.empty()) {
-//             std::lock_guard<std::mutex> g(q_mutex);
-//             // accumulate only until max_queue_size
-//             if (framesQueue.size() < max_queue_size) {
-//                 framesQueue.push(frame.clone());
-//             }
-//             // once reached, drop the oldest frame
-//             else {
-//                 framesQueue.pop();
-//                 framesQueue.push(frame.clone());
-//             }
-//         }
-//     }
-// }
 
 
 //-------------------------------------------------
@@ -109,9 +83,59 @@ void *ProcGetImage(void* pParam)
 int main(int argc, char** argv)
 {
 
-    printf("\n");
-    printf("Initializing......"); 
-    printf("\n\n");
+
+    ros::init(argc, argv, "image_publisher");
+    ros::NodeHandle nh;
+    ros::NodeHandle _nh("~"); // to get the private params
+    image_transport::ImageTransport it(nh);
+    image_transport::CameraPublisher pub = it.advertiseCamera("camera", 1);
+
+    ROS_INFO_STREAM("Starting loading ros launch parameters....");
+
+    std::string camera_name;
+    _nh.param("camera_name", camera_name, std::string("camera"));
+    ROS_INFO_STREAM("Camera name: " << camera_name);
+
+    _nh.param("set_camera_fps", set_camera_fps, 30.0);
+    ROS_INFO_STREAM("Setting camera FPS to: " << set_camera_fps);
+
+    _nh.param("set_exposure_time", set_exposure_time, 30.0);
+    ROS_INFO_STREAM("Setting camera exposure time(us) to: " << set_exposure_time);
+
+    int buffer_queue_size;
+    _nh.param("buffer_queue_size", buffer_queue_size, 100);
+    ROS_INFO_STREAM("Setting buffer size for capturing frames to: " << buffer_queue_size);
+    max_queue_size = buffer_queue_size;
+
+    double fps;
+    _nh.param("fps", fps, 240.0);
+    ROS_INFO_STREAM("Throttling to fps: " << fps);
+
+    if (fps > set_camera_fps)
+        ROS_WARN_STREAM("Asked to publish at 'fps' (" << fps
+                        << ") which is higher than the 'set_camera_fps' (" << set_camera_fps <<
+                        "), we can't publish faster than the camera provides images.");
+
+    std::string frame_id;
+    _nh.param("frame_id", frame_id, std::string("camera"));
+    ROS_INFO_STREAM("Publishing with frame_id: " << frame_id);
+
+    std::string camera_info_url;
+    _nh.param("camera_info_url", camera_info_url, std::string(""));
+    ROS_INFO_STREAM("Provided camera_info_url: '" << camera_info_url << "'");
+
+    bool flip_horizontal;
+    _nh.param("flip_horizontal", flip_horizontal, false);
+    ROS_INFO_STREAM("Flip horizontal image is: " << ((flip_horizontal)?"true":"false"));
+
+    bool flip_vertical;
+    _nh.param("flip_vertical", flip_vertical, false);
+    ROS_INFO_STREAM("Flip vertical image is: " << ((flip_vertical)?"true":"false"));
+
+
+
+    ROS_INFO_STREAM("Initializing industrial camera based on the ros parameter......"); 
+
      
     GX_STATUS emStatus = GX_STATUS_SUCCESS;
 
@@ -137,7 +161,7 @@ int main(int argc, char** argv)
     //If no device found, app exit
     if(ui32DeviceNum <= 0)
     {
-        printf("<No device found>\n");
+        ROS_INFO_STREAM("<No device found>\n");
         GXCloseLib();
         return emStatus;
     }
@@ -152,9 +176,9 @@ int main(int argc, char** argv)
     }
 
     //Get Device Info
-    printf("***********************************************\n");
+    ROS_INFO_STREAM("***********************************************\n");
     //Get libary version
-    printf("<Libary Version : %s>\n", GXGetLibVersion());
+    ROS_INFO_STREAM("<Libary Version : %s>\n", GXGetLibVersion());
     size_t nSize = 0;
     //Get string length of Vendor name
     emStatus = GXGetStringLength(g_hDevice, GX_STRING_DEVICE_VENDOR_NAME, &nSize);
@@ -189,7 +213,7 @@ int main(int argc, char** argv)
         GX_VERIFY_EXIT(emStatus);
     }
 
-    printf("<Model Name : %s>\n", pszModelName);
+    ROS_INFO_STREAM("<Model Name : %s>\n", pszModelName);
     //Release memory for Model name
     delete[] pszModelName;
     pszModelName = NULL;
@@ -288,7 +312,7 @@ int main(int argc, char** argv)
     GX_VERIFY_EXIT(emStatus);
 
     // setting the frame rate
-    emStatus = GXSetFloat(g_hDevice, GX_FLOAT_ACQUISITION_FRAME_RATE, 1.0);
+    emStatus = GXSetFloat(g_hDevice, GX_FLOAT_ACQUISITION_FRAME_RATE, set_camera_fps);
     GX_VERIFY_EXIT(emStatus);
 
     // setting auto exposure: off
@@ -302,7 +326,7 @@ int main(int argc, char** argv)
     //printf("%f,%f",shutterRange.dMin,shutterRange.dMax);
     
     // setting exposure time (unit:us)
-    emStatus = GXSetFloat(g_hDevice, GX_FLOAT_EXPOSURE_TIME, 20000.0);
+    emStatus = GXSetFloat(g_hDevice, GX_FLOAT_EXPOSURE_TIME, set_exposure_time);
     GX_VERIFY_EXIT(emStatus);    
 
    
@@ -321,114 +345,6 @@ int main(int argc, char** argv)
 
 
 
-
-
-
-
-
-
-
-
-    ros::init(argc, argv, "image_publisher");
-    ros::NodeHandle nh;
-    ros::NodeHandle _nh("~"); // to get the private params
-    image_transport::ImageTransport it(nh);
-    image_transport::CameraPublisher pub = it.advertiseCamera("camera", 1);
-
-    // provider can be an url (e.g.: rtsp://10.0.0.1:554) or a number of device, (e.g.: 0 would be /dev/video0)
-    // std::string video_stream_provider;
-    // if (_nh.getParam("video_stream_provider", video_stream_provider)){
-    //     ROS_INFO_STREAM("Resource video_stream_provider: " << video_stream_provider);
-    //     // If we are given a string of 4 chars or less (I don't think we'll have more than 100 video devices connected)
-    //     // treat is as a number and act accordingly so we open up the videoNUMBER device
-    //     if (video_stream_provider.size() < 4){
-    //         ROS_INFO_STREAM("Getting video from provider: /dev/video" << video_stream_provider);
-    //         video_stream_provider_type = "videodevice";
-    //         cap.open(atoi(video_stream_provider.c_str()));
-    //     }
-    //     else{
-    //         ROS_INFO_STREAM("Getting video from provider: " << video_stream_provider);
-    //         if (video_stream_provider.find("http://") != std::string::npos ||
-    //                 video_stream_provider.find("https://") != std::string::npos){
-    //             video_stream_provider_type = "http_stream";
-    //         }
-    //         else if(video_stream_provider.find("rtsp://") != std::string::npos){
-    //             video_stream_provider_type = "rtsp_stream";
-    //         }
-    //         else {
-    //             // Check if file exists to know if it's a videofile
-    //             std::ifstream ifs;
-    //             ifs.open(video_stream_provider.c_str(), std::ifstream::in);
-    //             if (ifs.good()){
-    //                 video_stream_provider_type = "videofile";
-    //             }
-    //             else
-    //                 video_stream_provider_type = "unknown";
-    //         }
-    //         cap.open(video_stream_provider);
-    //     }
-    // }
-    // else{
-    //     ROS_ERROR("Failed to get param 'video_stream_provider'");
-    //     return -1;
-    // }
-
-    // ROS_INFO_STREAM("Video stream provider type detected: " << video_stream_provider_type);
-
-    std::string camera_name;
-    _nh.param("camera_name", camera_name, std::string("camera"));
-    ROS_INFO_STREAM("Camera name: " << camera_name);
-
-    _nh.param("set_camera_fps", set_camera_fps, 30.0);
-    ROS_INFO_STREAM("Setting camera FPS to: " << set_camera_fps);\
-
-    // cap.set(CV_CAP_PROP_FPS, set_camera_fps);
-
-    // double reported_camera_fps;
-    // if (reported_camera_fps > 0.0)
-    //     ROS_INFO_STREAM("Camera reports FPS: " << reported_camera_fps);
-    // else
-    //     ROS_INFO_STREAM("Backend can't provide camera FPS information");
-
-    int buffer_queue_size;
-    _nh.param("buffer_queue_size", buffer_queue_size, 100);
-    ROS_INFO_STREAM("Setting buffer size for capturing frames to: " << buffer_queue_size);
-    max_queue_size = buffer_queue_size;
-
-    double fps;
-    _nh.param("fps", fps, 240.0);
-    ROS_INFO_STREAM("Throttling to fps: " << fps);
-
-    if (fps > set_camera_fps)
-        ROS_WARN_STREAM("Asked to publish at 'fps' (" << fps
-                        << ") which is higher than the 'set_camera_fps' (" << set_camera_fps <<
-                        "), we can't publish faster than the camera provides images.");
-
-    std::string frame_id;
-    _nh.param("frame_id", frame_id, std::string("camera"));
-    ROS_INFO_STREAM("Publishing with frame_id: " << frame_id);
-
-    std::string camera_info_url;
-    _nh.param("camera_info_url", camera_info_url, std::string(""));
-    ROS_INFO_STREAM("Provided camera_info_url: '" << camera_info_url << "'");
-
-    bool flip_horizontal;
-    _nh.param("flip_horizontal", flip_horizontal, false);
-    ROS_INFO_STREAM("Flip horizontal image is: " << ((flip_horizontal)?"true":"false"));
-
-    bool flip_vertical;
-    _nh.param("flip_vertical", flip_vertical, false);
-    ROS_INFO_STREAM("Flip vertical image is: " << ((flip_vertical)?"true":"false"));
-
-    // int width_target;
-    // int height_target;
-    // _nh.param("width", width_target, 0);
-    // _nh.param("height", height_target, 0);
-    // if (width_target != 0 && height_target != 0){
-    //     ROS_INFO_STREAM("Forced image width is: " << width_target);
-    //     ROS_INFO_STREAM("Forced image height is: " << height_target);
-    // }
-
     // From http://docs.opencv.org/modules/core/doc/operations_on_arrays.html#void flip(InputArray src, OutputArray dst, int flipCode)
     // FLIP_HORIZONTAL == 1, FLIP_VERTICAL == 0 or FLIP_BOTH == -1
     bool flip_image = true;
@@ -443,10 +359,6 @@ int main(int argc, char** argv)
         flip_image = false;
 
 
-    // if (width_target != 0 && height_target != 0){
-    //     cap.set(CV_CAP_PROP_FRAME_WIDTH, width_target);
-    //     cap.set(CV_CAP_PROP_FRAME_HEIGHT, height_target);
-    // }
 
     cv::Mat frame;
     sensor_msgs::ImagePtr msg;
@@ -459,10 +371,6 @@ int main(int argc, char** argv)
     cam_info_msg.header = header;
 
     ROS_INFO_STREAM("Opened the stream, starting to publish.");
-
-    // boost::thread cap_thread(do_capture, nh);
-
-    // boost::thread cap_thread(ProcGetImage, nh);
     // Start acquisition thread, if thread create failed, exit this app
     int nRet = pthread_create(&g_nAcquisitonThreadID, NULL, ProcGetImage, NULL);
     if(nRet != 0)
@@ -513,7 +421,6 @@ int main(int argc, char** argv)
         }
         r.sleep();
     }
-    // cap_thread.join();
 }
 
 
