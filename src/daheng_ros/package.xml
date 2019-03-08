@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<package>
+  <name>daheng_ros</name>
+  <version>1.1.4</version>
+
+  <description>
+  rosdriver for daheng mer camera.
+  </description>
+
+  <maintainer email="linshijie@whu.edu.cn">Sammy Pfeiffer</maintainer>
+  <author>Shijie Lin</author>
+
+  <url type="website">http://www.github.com/eleboss/</url>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>camera_info_manager</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+
+  <run_depend>cv_bridge</run_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>camera_info_manager</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+
+</package>

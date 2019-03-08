@@ -38,7 +38,13 @@ queue<Mat> framesQueue;
 string video_stream_provider_type;
 double set_camera_fps;
 double set_exposure_time;
-int max_queue_size;
+std::string camera_info_url;
+string frame_id;
+Mat frame;
+std_msgs::Header header;
+sensor_msgs::ImagePtr msg;
+sensor_msgs::CameraInfo cam_info_msg;
+string camera_name;
 
 //Show error message
 #define GX_VERIFY(emStatus) \
@@ -59,7 +65,6 @@ int max_queue_size;
         printf("<App Exit!>\n");           \
         return emStatus;                   \
     }
-
 
 GX_DEV_HANDLE g_hDevice = NULL;                     ///< Device handle
 bool g_bColorFilter = false;                        ///< Color filter support flag
@@ -86,7 +91,7 @@ int PixelFormatConvert(PGX_FRAME_BUFFER);
 void SavePPMFile(uint32_t, uint32_t);
 
 //Acquisition thread function
-void *ProcGetImage(void*);
+// void *ProcGetImage(void*);
 
 //Get description of error
 void GetErrorString(GX_STATUS);

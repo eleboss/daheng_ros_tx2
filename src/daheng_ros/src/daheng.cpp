@@ -2,12 +2,6 @@
 
 
 
-
-
-
-
-
-
 //-------------------------------------------------
 /**
 \brief Acquisition thread function
@@ -15,20 +9,22 @@
 \return void*
 */
 //-------------------------------------------------
-void *ProcGetImage(void* pParam)
+void ProcGetImage(ros::NodeHandle &nh)
 {
     GX_STATUS emStatus = GX_STATUS_SUCCESS;
     //Thread running flag setup
-    g_bAcquisitionFlag = true;
     PGX_FRAME_BUFFER pFrameBuffer = NULL;
 
+    image_transport::ImageTransport it(nh);
+    image_transport::CameraPublisher pub = it.advertiseCamera("camera", 1);
+    header.frame_id = frame_id;
+    camera_info_manager::CameraInfoManager cam_info_manager(nh, camera_name, camera_info_url);
+    // Get the saved camera info if any
+    cam_info_msg = cam_info_manager.getCameraInfo();
+    cam_info_msg.header = header;
 
-    uint32_t ui32FrameCount = 0;
-    uint32_t ui32AcqFrameRate = 0;
-
-    while(g_bAcquisitionFlag)
+    while(nh.ok())
     {
-
         // Get a frame from Queue
         emStatus = GXDQBuf(g_hDevice, &pFrameBuffer, 1000);
         if(emStatus != GX_STATUS_SUCCESS)
@@ -56,15 +52,23 @@ void *ProcGetImage(void* pParam)
             int nRet = PixelFormatConvert(pFrameBuffer);
             Mat frame(pFrameBuffer->nHeight, pFrameBuffer->nWidth, CV_8UC3, g_pRGBImageBuf);
 
-            std::lock_guard<std::mutex> g(q_mutex);
-            // accumulate only until max_queue_size
-            if (framesQueue.size() < max_queue_size) {
-                framesQueue.push(frame.clone());
-            }
-            // once reached, drop the oldest frame
-            else {
-                framesQueue.pop();
-                framesQueue.push(frame.clone());
+
+
+
+
+            if (pub.getNumSubscribers() > 0){
+                // Check if grabbed frame is actually filled with some content
+                if(!frame.empty()) {
+                    msg = cv_bridge::CvImage(header, "bgr8", frame).toImageMsg();
+                    // Create a default camera info if we didn't get a stored one on initialization
+                    if (cam_info_msg.distortion_model == ""){
+                        ROS_WARN_STREAM("No calibration file given, publishing a reasonable default camera info.");
+                        cam_info_msg = get_default_camera_info_from_image(msg);
+                        cam_info_manager.setCameraInfo(cam_info_msg);
+                    }
+                    // The timestamps are in sync thanks to this publisher
+                    pub.publish(*msg, cam_info_msg, ros::Time::now());
+                }
             }
         }
 
@@ -77,7 +81,7 @@ void *ProcGetImage(void* pParam)
     }
     printf("<Acquisition thread Exit!>\n");
 
-    return 0;
+    // return 0;
 }
 
 int main(int argc, char** argv)
@@ -86,51 +90,25 @@ int main(int argc, char** argv)
 
     ros::init(argc, argv, "image_publisher");
     ros::NodeHandle nh;
-    ros::NodeHandle _nh("~"); // to get the private params
-    image_transport::ImageTransport it(nh);
-    image_transport::CameraPublisher pub = it.advertiseCamera("camera", 1);
+    // ros::NodeHandle _nh("~"); // to get the private params
 
     ROS_INFO_STREAM("Starting loading ros launch parameters....");
 
-    std::string camera_name;
-    _nh.param("camera_name", camera_name, std::string("camera"));
+
+    nh.param("camera_name", camera_name, std::string("camera"));
     ROS_INFO_STREAM("Camera name: " << camera_name);
 
-    _nh.param("set_camera_fps", set_camera_fps, 30.0);
+    nh.param("set_camera_fps", set_camera_fps, 20.0);
     ROS_INFO_STREAM("Setting camera FPS to: " << set_camera_fps);
 
-    _nh.param("set_exposure_time", set_exposure_time, 30.0);
+    nh.param("set_exposure_time", set_exposure_time, 30000.0);
     ROS_INFO_STREAM("Setting camera exposure time(us) to: " << set_exposure_time);
 
-    int buffer_queue_size;
-    _nh.param("buffer_queue_size", buffer_queue_size, 100);
-    ROS_INFO_STREAM("Setting buffer size for capturing frames to: " << buffer_queue_size);
-    max_queue_size = buffer_queue_size;
-
-    double fps;
-    _nh.param("fps", fps, 240.0);
-    ROS_INFO_STREAM("Throttling to fps: " << fps);
-
-    if (fps > set_camera_fps)
-        ROS_WARN_STREAM("Asked to publish at 'fps' (" << fps
-                        << ") which is higher than the 'set_camera_fps' (" << set_camera_fps <<
-                        "), we can't publish faster than the camera provides images.");
-
-    std::string frame_id;
-    _nh.param("frame_id", frame_id, std::string("camera"));
+    nh.param("frame_id", frame_id, std::string("camera"));
     ROS_INFO_STREAM("Publishing with frame_id: " << frame_id);
 
-    std::string camera_info_url;
-    _nh.param("camera_info_url", camera_info_url, std::string(""));
+    nh.param("camera_info_url", camera_info_url, std::string(""));
     ROS_INFO_STREAM("Provided camera_info_url: '" << camera_info_url << "'");
-
-    bool flip_horizontal;
-    _nh.param("flip_horizontal", flip_horizontal, false);
-    ROS_INFO_STREAM("Flip horizontal image is: " << ((flip_horizontal)?"true":"false"));
-
-    bool flip_vertical;
-    _nh.param("flip_vertical", flip_vertical, false);
-    ROS_INFO_STREAM("Flip vertical image is: " << ((flip_vertical)?"true":"false"));
 
 
 
@@ -178,7 +156,7 @@ int main(int argc, char** argv)
     //Get Device Info
     ROS_INFO_STREAM("***********************************************\n");
     //Get libary version
-    ROS_INFO_STREAM("<Libary Version : %s>\n", GXGetLibVersion());
+    printf("<Libary Version : %s>\n", GXGetLibVersion());
     size_t nSize = 0;
     //Get string length of Vendor name
     emStatus = GXGetStringLength(g_hDevice, GX_STRING_DEVICE_VENDOR_NAME, &nSize);
@@ -213,7 +191,7 @@ int main(int argc, char** argv)
         GX_VERIFY_EXIT(emStatus);
     }
 
-    ROS_INFO_STREAM("<Model Name : %s>\n", pszModelName);
+    printf("<Model Name : %s>\n", pszModelName);
     //Release memory for Model name
     delete[] pszModelName;
     pszModelName = NULL;
@@ -254,7 +232,7 @@ int main(int argc, char** argv)
     //Release memory for Device version
     delete[] pszDeviceVersion;
     pszDeviceVersion = NULL;
-    printf("***********************************************\n");
+    ROS_INFO_STREAM("***********************************************\n");
 
     //Get the type of Bayer conversion. whether is a color camera.
     emStatus = GXIsImplemented(g_hDevice, GX_ENUM_PIXEL_COLOR_FILTER, &g_bColorFilter);
@@ -345,82 +323,65 @@ int main(int argc, char** argv)
 
 
 
-    // From http://docs.opencv.org/modules/core/doc/operations_on_arrays.html#void flip(InputArray src, OutputArray dst, int flipCode)
-    // FLIP_HORIZONTAL == 1, FLIP_VERTICAL == 0 or FLIP_BOTH == -1
-    bool flip_image = true;
-    int flip_value;
-    if (flip_horizontal && flip_vertical)
-        flip_value = -1; // flip both, horizontal and vertical
-    else if (flip_horizontal)
-        flip_value = 1;
-    else if (flip_vertical)
-        flip_value = 0;
-    else
-        flip_image = false;
 
 
 
-    cv::Mat frame;
-    sensor_msgs::ImagePtr msg;
-    sensor_msgs::CameraInfo cam_info_msg;
-    std_msgs::Header header;
-    header.frame_id = frame_id;
-    camera_info_manager::CameraInfoManager cam_info_manager(nh, camera_name, camera_info_url);
-    // Get the saved camera info if any
-    cam_info_msg = cam_info_manager.getCameraInfo();
-    cam_info_msg.header = header;
+
+
+
 
     ROS_INFO_STREAM("Opened the stream, starting to publish.");
     // Start acquisition thread, if thread create failed, exit this app
-    int nRet = pthread_create(&g_nAcquisitonThreadID, NULL, ProcGetImage, NULL);
-    if(nRet != 0)
-    {
-        //Release the memory allocated
-        UnPreForAcquisition();
+    // int nRet = pthread_create(&g_nAcquisitonThreadID, NULL, ProcGetImage, NULL);
+    boost::thread cap_thread(ProcGetImage, nh);
+    // boost::thread cap_thread(do_capture, nh);
+    // if(nRet != 0)
+    // {
+    //     //Release the memory allocated
+    //     UnPreForAcquisition();
 
-        GXCloseDevice(g_hDevice);
-        g_hDevice = NULL;
-        GXCloseLib();
+    //     GXCloseDevice(g_hDevice);
+    //     g_hDevice = NULL;
+    //     GXCloseLib();
 
-        printf("<Failed to create the acquisition thread, App Exit!>\n");
-        ROS_ERROR_STREAM("Could not open the stream.");
-        exit(nRet);
-    }
+    //     printf("<Failed to create the acquisition thread, App Exit!>\n");
+    //     ROS_ERROR_STREAM("Could not open the stream.");
+    //     exit(nRet);
+    // }
 
 
 
-    ros::Rate r(fps);
+    ros::Rate r(set_camera_fps);
     while (nh.ok()) {
 
-        {
-            std::lock_guard<std::mutex> g(q_mutex);
-            if (!framesQueue.empty()){
-                frame = framesQueue.front();
-                framesQueue.pop();
-            }
-        }
+        // {
+        //     std::lock_guard<std::mutex> g(q_mutex);
+        //     if (!framesQueue.empty()){
+        //         frame = framesQueue.front();
+        //         framesQueue.pop();
+        //     }
+        // }
 
-        if (pub.getNumSubscribers() > 0){
-            // Check if grabbed frame is actually filled with some content
-            if(!frame.empty()) {
-                // Flip the image if necessary
-                if (flip_image)
-                    cv::flip(frame, frame, flip_value);
-                msg = cv_bridge::CvImage(header, "bgr8", frame).toImageMsg();
-                // Create a default camera info if we didn't get a stored one on initialization
-                if (cam_info_msg.distortion_model == ""){
-                    ROS_WARN_STREAM("No calibration file given, publishing a reasonable default camera info.");
-                    cam_info_msg = get_default_camera_info_from_image(msg);
-                    cam_info_manager.setCameraInfo(cam_info_msg);
-                }
-                // The timestamps are in sync thanks to this publisher
-                pub.publish(*msg, cam_info_msg, ros::Time::now());
-            }
+        // if (pub.getNumSubscribers() > 0){
+        //     // Check if grabbed frame is actually filled with some content
+        //     if(!frame.empty()) {
+        //         // Flip the image if necessary
+        //         msg = cv_bridge::CvImage(header, "bgr8", frame).toImageMsg();
+        //         // Create a default camera info if we didn't get a stored one on initialization
+        //         if (cam_info_msg.distortion_model == ""){
+        //             ROS_WARN_STREAM("No calibration file given, publishing a reasonable default camera info.");
+        //             cam_info_msg = get_default_camera_info_from_image(msg);
+        //             cam_info_manager.setCameraInfo(cam_info_msg);
+        //         }
+        //         // The timestamps are in sync thanks to this publisher
+        //         pub.publish(*msg, cam_info_msg, ros::Time::now());
+        //     }
 
-            ros::spinOnce();
-        }
+        //     ros::spinOnce();
+        // }
         r.sleep();
     }
+    cap_thread.join();
 }
 
 
