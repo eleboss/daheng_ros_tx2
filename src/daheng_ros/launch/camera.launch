@@ -8,7 +8,8 @@
   	<!-- By default, calibrations are stored to file://${ROS_HOME}/camera_info/${NAME}.yaml
   	To use your own fill this arg with the corresponding url, e.g.:
   	"file:///$(find your_camera_package)/config/your_camera.yaml" -->
-    <arg name="camera_info_url" default="file:///$(find offboard)/config/calibration.yaml" />
+    <!-- <arg name="camera_info_url" default="file:///$(find offboard)/config/calibration.yaml" /> -->
+    <arg name="camera_info_url" default="" />
 	<!-- visualize on an image_view window the stream generated -->
 	<arg name="visualize" value="false" />
 

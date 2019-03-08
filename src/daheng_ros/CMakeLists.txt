@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(video_stream_opencv)
+project(daheng_ros)
 add_definitions(
     -std=c++11
 )
@@ -23,11 +23,6 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_executable(video_stream src/video_stream.cpp)
-target_link_libraries(video_stream ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
-pthread
-gxiapi
-)
 
 add_executable(daheng src/daheng.cpp)
 target_link_libraries(daheng ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
@@ -35,14 +30,7 @@ pthread
 gxiapi
 )
 
-install(TARGETS video_stream
-    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
-install(PROGRAMS
-  scripts/test_video_resource.py
-
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
 
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
