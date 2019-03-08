@@ -90,236 +90,236 @@ void *ProcGetImage(void*);
 //Get description of error
 void GetErrorString(GX_STATUS);
 
-// //-------------------------------------------------
-// /**
-// \brief Save PPM image
-// \param ui32Width[in]       image width
-// \param ui32Height[in]      image height
-// \return void
-// */
-// //-------------------------------------------------
-// void SavePPMFile(uint32_t ui32Width, uint32_t ui32Height)
-// {
-//     char szName[FILE_NAME_LEN] = {0};
+//-------------------------------------------------
+/**
+\brief Save PPM image
+\param ui32Width[in]       image width
+\param ui32Height[in]      image height
+\return void
+*/
+//-------------------------------------------------
+void SavePPMFile(uint32_t ui32Width, uint32_t ui32Height)
+{
+    char szName[FILE_NAME_LEN] = {0};
 
-//     static int nRawFileIndex = 0;
-//     FILE* phImageFile = NULL;
-//     sprintf(szName, "Frame_%d.ppm", nRawFileIndex++);
-//     phImageFile = fopen(szName, "wb");
-//     if (phImageFile == NULL)
-//     {
-//         printf("Save %s failed!\n", szName);
-//         return;
-//     }
+    static int nRawFileIndex = 0;
+    FILE* phImageFile = NULL;
+    sprintf(szName, "Frame_%d.ppm", nRawFileIndex++);
+    phImageFile = fopen(szName, "wb");
+    if (phImageFile == NULL)
+    {
+        printf("Save %s failed!\n", szName);
+        return;
+    }
 
-//     if(g_pRGBImageBuf != NULL)
-//     {
-//         //Save color image
-//         fprintf(phImageFile, "P6\n" "%u %u 255\n", ui32Width, ui32Height);
-//         fwrite(g_pRGBImageBuf, 1, g_nPayloadSize * 3, phImageFile);
-//         fclose(phImageFile);
-//         phImageFile = NULL;
-//         printf("Save %s successed!\n", szName);
-//     }
-//     else
-//     {
-//         printf("Save %s failed!\n", szName);
-//     }
-// }
+    if(g_pRGBImageBuf != NULL)
+    {
+        //Save color image
+        fprintf(phImageFile, "P6\n" "%u %u 255\n", ui32Width, ui32Height);
+        fwrite(g_pRGBImageBuf, 1, g_nPayloadSize * 3, phImageFile);
+        fclose(phImageFile);
+        phImageFile = NULL;
+        printf("Save %s successed!\n", szName);
+    }
+    else
+    {
+        printf("Save %s failed!\n", szName);
+    }
+}
 
-// //-------------------------------------------------
-// /**
-// \brief Convert frame date to suitable pixel format
-// \param pParam[in]           pFrameBuffer       FrameData from camera
-// \return void
-// */
-// //-------------------------------------------------
-// int PixelFormatConvert(PGX_FRAME_BUFFER pFrameBuffer)
-// {
-//     GX_STATUS emStatus = GX_STATUS_SUCCESS;
-//     VxInt32 emDXStatus = DX_OK;
+//-------------------------------------------------
+/**
+\brief Convert frame date to suitable pixel format
+\param pParam[in]           pFrameBuffer       FrameData from camera
+\return void
+*/
+//-------------------------------------------------
+int PixelFormatConvert(PGX_FRAME_BUFFER pFrameBuffer)
+{
+    GX_STATUS emStatus = GX_STATUS_SUCCESS;
+    VxInt32 emDXStatus = DX_OK;
 
-//     // Convert RAW8 or RAW16 image to RGB24 image
-//     switch (pFrameBuffer->nPixelFormat)
-//     {
-//         case GX_PIXEL_FORMAT_BAYER_GR8:
-//         case GX_PIXEL_FORMAT_BAYER_RG8:
-//         case GX_PIXEL_FORMAT_BAYER_GB8:
-//         case GX_PIXEL_FORMAT_BAYER_BG8:
-//         {
-//             // Convert to the RGB image
-//             emDXStatus = DxRaw8toRGB24((unsigned char*)pFrameBuffer->pImgBuf, g_pRGBImageBuf, pFrameBuffer->nWidth, pFrameBuffer->nHeight,
-//                               RAW2RGB_NEIGHBOUR, DX_PIXEL_COLOR_FILTER(g_i64ColorFilter), false);
-//             if (emDXStatus != DX_OK)
-//             {
-//                 printf("DxRaw8toRGB24 Failed, Error Code: %d\n", emDXStatus);
-//                 return PIXFMT_CVT_FAIL;
-//             }
-//             break;
-//         }
-//         case GX_PIXEL_FORMAT_BAYER_GR10:
-//         case GX_PIXEL_FORMAT_BAYER_RG10:
-//         case GX_PIXEL_FORMAT_BAYER_GB10:
-//         case GX_PIXEL_FORMAT_BAYER_BG10:
-//         case GX_PIXEL_FORMAT_BAYER_GR12:
-//         case GX_PIXEL_FORMAT_BAYER_RG12:
-//         case GX_PIXEL_FORMAT_BAYER_GB12:
-//         case GX_PIXEL_FORMAT_BAYER_BG12:
-//         {
-//             // Convert to the Raw8 image
-//             emDXStatus = DxRaw16toRaw8((unsigned char*)pFrameBuffer->pImgBuf, g_pRaw8Image, pFrameBuffer->nWidth, pFrameBuffer->nHeight, DX_BIT_2_9);
-//             if (emDXStatus != DX_OK)
-//             {
-//                 printf("DxRaw16toRaw8 Failed, Error Code: %d\n", emDXStatus);
-//                 return PIXFMT_CVT_FAIL;
-//             }
-//             // Convert to the RGB24 image
-//             emDXStatus = DxRaw8toRGB24((unsigned char*)g_pRaw8Image, g_pRGBImageBuf, pFrameBuffer->nWidth, pFrameBuffer->nHeight,
-//                               RAW2RGB_NEIGHBOUR, DX_PIXEL_COLOR_FILTER(g_i64ColorFilter), false);
-//             if (emDXStatus != DX_OK)
-//             {
-//                 printf("DxRaw8toRGB24 Failed, Error Code: %d\n", emDXStatus);
-//                 return PIXFMT_CVT_FAIL;
-//             }
-//             break;
-//         }
-//         default:
-//         {
-//             printf("Error : PixelFormat of this camera is not supported\n");
-//             return PIXFMT_CVT_FAIL;
-//         }
-//     }
-//     return PIXFMT_CVT_SUCCESS;
-// }
+    // Convert RAW8 or RAW16 image to RGB24 image
+    switch (pFrameBuffer->nPixelFormat)
+    {
+        case GX_PIXEL_FORMAT_BAYER_GR8:
+        case GX_PIXEL_FORMAT_BAYER_RG8:
+        case GX_PIXEL_FORMAT_BAYER_GB8:
+        case GX_PIXEL_FORMAT_BAYER_BG8:
+        {
+            // Convert to the RGB image
+            emDXStatus = DxRaw8toRGB24((unsigned char*)pFrameBuffer->pImgBuf, g_pRGBImageBuf, pFrameBuffer->nWidth, pFrameBuffer->nHeight,
+                              RAW2RGB_NEIGHBOUR, DX_PIXEL_COLOR_FILTER(g_i64ColorFilter), false);
+            if (emDXStatus != DX_OK)
+            {
+                printf("DxRaw8toRGB24 Failed, Error Code: %d\n", emDXStatus);
+                return PIXFMT_CVT_FAIL;
+            }
+            break;
+        }
+        case GX_PIXEL_FORMAT_BAYER_GR10:
+        case GX_PIXEL_FORMAT_BAYER_RG10:
+        case GX_PIXEL_FORMAT_BAYER_GB10:
+        case GX_PIXEL_FORMAT_BAYER_BG10:
+        case GX_PIXEL_FORMAT_BAYER_GR12:
+        case GX_PIXEL_FORMAT_BAYER_RG12:
+        case GX_PIXEL_FORMAT_BAYER_GB12:
+        case GX_PIXEL_FORMAT_BAYER_BG12:
+        {
+            // Convert to the Raw8 image
+            emDXStatus = DxRaw16toRaw8((unsigned char*)pFrameBuffer->pImgBuf, g_pRaw8Image, pFrameBuffer->nWidth, pFrameBuffer->nHeight, DX_BIT_2_9);
+            if (emDXStatus != DX_OK)
+            {
+                printf("DxRaw16toRaw8 Failed, Error Code: %d\n", emDXStatus);
+                return PIXFMT_CVT_FAIL;
+            }
+            // Convert to the RGB24 image
+            emDXStatus = DxRaw8toRGB24((unsigned char*)g_pRaw8Image, g_pRGBImageBuf, pFrameBuffer->nWidth, pFrameBuffer->nHeight,
+                              RAW2RGB_NEIGHBOUR, DX_PIXEL_COLOR_FILTER(g_i64ColorFilter), false);
+            if (emDXStatus != DX_OK)
+            {
+                printf("DxRaw8toRGB24 Failed, Error Code: %d\n", emDXStatus);
+                return PIXFMT_CVT_FAIL;
+            }
+            break;
+        }
+        default:
+        {
+            printf("Error : PixelFormat of this camera is not supported\n");
+            return PIXFMT_CVT_FAIL;
+        }
+    }
+    return PIXFMT_CVT_SUCCESS;
+}
 
-// //-------------------------------------------------
-// /**
-// \brief Allocate the memory for pixel format transform 
-// \return void
-// */
-// //-------------------------------------------------
-// void PreForAcquisition()
-// {
-//     g_pRGBImageBuf = new unsigned char[g_nPayloadSize * 3]; 
-//     g_pRaw8Image = new unsigned char[g_nPayloadSize];
-//     printf("%d",g_nPayloadSize);
+//-------------------------------------------------
+/**
+\brief Allocate the memory for pixel format transform 
+\return void
+*/
+//-------------------------------------------------
+void PreForAcquisition()
+{
+    g_pRGBImageBuf = new unsigned char[g_nPayloadSize * 3]; 
+    g_pRaw8Image = new unsigned char[g_nPayloadSize];
+    printf("%d",g_nPayloadSize);
 
-//     return;
-// }
+    return;
+}
 
-// //-------------------------------------------------
-// /**
-// \brief Release the memory allocated
-// \return void
-// */
-// //-------------------------------------------------
-// void UnPreForAcquisition()
-// {
-//     //Release resources
-//     if (g_pRaw8Image != NULL)
-//     {
-//         delete[] g_pRaw8Image;
-//         g_pRaw8Image = NULL;
-//     }
-//     if (g_pRGBImageBuf != NULL)
-//     {
-//         delete[] g_pRGBImageBuf;
-//         g_pRGBImageBuf = NULL;
-//     }
+//-------------------------------------------------
+/**
+\brief Release the memory allocated
+\return void
+*/
+//-------------------------------------------------
+void UnPreForAcquisition()
+{
+    //Release resources
+    if (g_pRaw8Image != NULL)
+    {
+        delete[] g_pRaw8Image;
+        g_pRaw8Image = NULL;
+    }
+    if (g_pRGBImageBuf != NULL)
+    {
+        delete[] g_pRGBImageBuf;
+        g_pRGBImageBuf = NULL;
+    }
 
-//     return;
-// }
+    return;
+}
 
-// //-------------------------------------------------
-// /**
-// \brief Acquisition thread function
-// \param pParam       thread param, not used in this app
-// \return void*
-// */
-// //-------------------------------------------------
-// void *ProcGetImage(void* pParam)
-// {
-//     GX_STATUS emStatus = GX_STATUS_SUCCESS;
+//-------------------------------------------------
+/**
+\brief Acquisition thread function
+\param pParam       thread param, not used in this app
+\return void*
+*/
+//-------------------------------------------------
+void *ProcGetImage(void* pParam)
+{
+    GX_STATUS emStatus = GX_STATUS_SUCCESS;
 
-//     //Thread running flag setup
-//     g_bAcquisitionFlag = true;
-//     PGX_FRAME_BUFFER pFrameBuffer = NULL;
+    //Thread running flag setup
+    g_bAcquisitionFlag = true;
+    PGX_FRAME_BUFFER pFrameBuffer = NULL;
 
-//     time_t lInit;
-//     time_t lEnd;
-//     uint32_t ui32FrameCount = 0;
-//     uint32_t ui32AcqFrameRate = 0;
+    time_t lInit;
+    time_t lEnd;
+    uint32_t ui32FrameCount = 0;
+    uint32_t ui32AcqFrameRate = 0;
 
-//     while(g_bAcquisitionFlag)
-//     {
-//         if(!ui32FrameCount)
-//         {
-//             time(&lInit);
-//         }
+    while(g_bAcquisitionFlag)
+    {
+        if(!ui32FrameCount)
+        {
+            time(&lInit);
+        }
 
-//         // Get a frame from Queue
-//         emStatus = GXDQBuf(g_hDevice, &pFrameBuffer, 1000);
-//         if(emStatus != GX_STATUS_SUCCESS)
-//         {
-//             if (emStatus == GX_STATUS_TIMEOUT)
-//             {
-//                 continue;
-//             }
-//             else
-//             {
-//                 GetErrorString(emStatus);
-//                 break;
-//             }
-//         }
+        // Get a frame from Queue
+        emStatus = GXDQBuf(g_hDevice, &pFrameBuffer, 1000);
+        if(emStatus != GX_STATUS_SUCCESS)
+        {
+            if (emStatus == GX_STATUS_TIMEOUT)
+            {
+                continue;
+            }
+            else
+            {
+                GetErrorString(emStatus);
+                break;
+            }
+        }
 
-//         if(pFrameBuffer->nStatus != GX_FRAME_STATUS_SUCCESS)
-//         {
-//             printf("<Abnormal Acquisition: Exception code: %d>\n", pFrameBuffer->nStatus);
-//         }
-//         else
-//         {
-//             ui32FrameCount++;
-//             time (&lEnd);
-//             // Print acquisition info each second.
-//             if (lEnd - lInit >= 1)
-//             {   
-//                 printf("<Successful acquisition: FrameCount: %u Width: %d Height: %d FrameID: %llu>\n", 
-//                     ui32FrameCount, pFrameBuffer->nWidth, pFrameBuffer->nHeight, pFrameBuffer->nFrameID);
-//                 ui32FrameCount = 0;
-//             }
+        if(pFrameBuffer->nStatus != GX_FRAME_STATUS_SUCCESS)
+        {
+            printf("<Abnormal Acquisition: Exception code: %d>\n", pFrameBuffer->nStatus);
+        }
+        else
+        {
+            ui32FrameCount++;
+            time (&lEnd);
+            // Print acquisition info each second.
+            if (lEnd - lInit >= 1)
+            {   
+                printf("<Successful acquisition: FrameCount: %u Width: %d Height: %d FrameID: %llu>\n", 
+                    ui32FrameCount, pFrameBuffer->nWidth, pFrameBuffer->nHeight, pFrameBuffer->nFrameID);
+                ui32FrameCount = 0;
+            }
 
-//             if (g_bSavePPMImage)
-//             {   
+            if (g_bSavePPMImage)
+            {   
 
-//                 //Mat image(pFrameBuffer->nHeight, pFrameBuffer->nWidth, CV_8UC3, pFrameBuffer->pImgBuf);
-//                 int nRet = PixelFormatConvert(pFrameBuffer);
-//                 Mat image(pFrameBuffer->nHeight, pFrameBuffer->nWidth, CV_8UC3, g_pRGBImageBuf);
-//                 //imwrite("./test.jpg",image);                
-//                 imshow("show",image);  
-//                 waitKey(10);
-//                 if (nRet == PIXFMT_CVT_SUCCESS)
-//                 {
-//                     SavePPMFile(pFrameBuffer->nWidth, pFrameBuffer->nHeight);
-//                 }
-//                 else
-//                 {
-//                     printf("PixelFormat Convert failed!\n");
-//                 }
-//                 g_bSavePPMImage = false;
-//             }
-//         }
+                //Mat image(pFrameBuffer->nHeight, pFrameBuffer->nWidth, CV_8UC3, pFrameBuffer->pImgBuf);
+                int nRet = PixelFormatConvert(pFrameBuffer);
+                Mat image(pFrameBuffer->nHeight, pFrameBuffer->nWidth, CV_8UC3, g_pRGBImageBuf);
+                //imwrite("./test.jpg",image);                
+                imshow("show",image);  
+                waitKey(10);
+                if (nRet == PIXFMT_CVT_SUCCESS)
+                {
+                    SavePPMFile(pFrameBuffer->nWidth, pFrameBuffer->nHeight);
+                }
+                else
+                {
+                    printf("PixelFormat Convert failed!\n");
+                }
+                g_bSavePPMImage = false;
+            }
+        }
 
-//         emStatus = GXQBuf(g_hDevice, pFrameBuffer);
-//         if(emStatus != GX_STATUS_SUCCESS)
-//         {
-//             GetErrorString(emStatus);
-//             break;
-//         }  
-//     }
-//     printf("<Acquisition thread Exit!>\n");
+        emStatus = GXQBuf(g_hDevice, pFrameBuffer);
+        if(emStatus != GX_STATUS_SUCCESS)
+        {
+            GetErrorString(emStatus);
+            break;
+        }  
+    }
+    printf("<Acquisition thread Exit!>\n");
 
-//     return 0;
-// }
+    return 0;
+}
 
 //----------------------------------------------------------------------------------
 /**
